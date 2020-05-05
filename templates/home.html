@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<a href="index" style="font-size: 15pt">Home</a>
+<div align = "center">
+    <H1>Shared Doc</H1>
+    <H3>Your Unique document code is {{docid}}</H3>
+    <form action="save" method = "POST">
+        {% csrf_token %}
+        <textarea name="doc" rows="18" cols="90" style="font-size: 20pt">{{doc}}</textarea><br>
+        <input type="submit" name="save" value="Save">
+    </form>
+</div>
+{% endblock %}

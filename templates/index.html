@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <div align = 'center'>
+        <H1>Shared Doc</H1>
+        <form action="openDoc" method="POST">
+            {% csrf_token %}
+            To Edit existing Doc enter its ID:
+            <input type="number" name="docID" value="docID">
+            <input type="submit" name="go" value="go"><br><br><br>
+            <input type="submit" name="newDoc" value="For New Doc">
+        </form>
+    </div>
+
+{% endblock %}
