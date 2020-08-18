@@ -4,11 +4,208 @@
 <a href="index" style="font-size: 15pt">Home</a>
 <div align = "center">
     <H1>Shared Doc</H1>
-    <H3>Your Unique document code is {{docid}}</H3>
+    <H4>Your Unique document code is {{docid}}</H4>
+    <input type="hidden" id = "document" value="{{doc}}">
     <form action="save" method = "POST">
         {% csrf_token %}
-        <textarea name="doc" rows="18" cols="90" style="font-size: 20pt">{{doc}}</textarea><br>
-        <input type="submit" name="save" value="Save">
+        <textarea id = "doc" name="doc" contenteditable="true" rows="16" cols="90" style="font-size: 20pt"></textarea><br>
+        <input type="submit" name="save" value="Save" id = "save">
     </form>
 </div>
+<script>
+    var doci = document.getElementById('document').value;
+    document.getElementById('doc').innerHTML = doci;
+</script>
+<script>
+    var DocName = {{docid}};
+    var Name = '{{name}}';
+    //console.log(Name);
+    //var updQueue = [];
+    const chatSocket = new WebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/editor/openDoc/'
+        //+ Name
+        //+ '/'
+        + DocName
+        + '/'
+    );
+    document.querySelector('#doc').onkeydown = function(e){
+        if(e.ctrlKey && e.keyCode == 83){
+            e.preventDefault();
+            document.getElementById('save').click();
+            return;
+        }
+        if(e.keyCode == 9){
+            e.preventDefault();
+        }
+        var firstOptions = {
+            '191':'/',
+            '219':'[',
+            '220':'\\',
+            '221':']',
+            '222':'\'',
+            '190':'.',
+            '189':'-',
+            '188':',',
+            '187':'=',
+            '186':';',
+            '107':'+',
+            '110':'.',
+            '111':'/',
+            '109':'-',
+            '106':'*',
+            '105':'9',
+            '104':'8',
+            '103':'7',
+            '102':'6',
+            '101':'5',
+            '100':'4',
+            '99':'3',
+            '98':'2',
+            '97':'1',
+            '96':'0',
+            '9':'    ',
+        };
+        var altOptions = {
+            '49':'!',
+            '50':'@',
+            '51':'#',
+            '52':'$',
+            '53':'%',
+            '54':'^',
+            '55':'&',
+            '56':'*',
+            '57':'(',
+            '48':')',
+            '219':'{',
+            '220':'|',
+            '221':'}',
+            '222':'\"',
+            '190':'>',
+            '189':'_',
+            '188':'<',
+            '187':'+',
+            '186':':',
+            '107':'+',
+            '110':'.',
+            '191':'?',
+            '109':'-',
+            '106':'*',
+        };
+        var temp = "";
+        var textarea = document.getElementById('doc');
+        var opKeys = [27,9,20,16,17,91,18,93,33,34,35,36,37,38,39,40,144];
+        var code = e.which || e.keyCode;
+        console.log(code);
+        if(opKeys.indexOf(code) == -1){
+            var letter = String.fromCharCode(code);
+            if(event.getModifierState("CapsLock") == false){
+                letter = letter.toLowerCase();
+            }
+            if(code in firstOptions){
+                letter = firstOptions[code];
+            }
+            if(e.shiftKey){
+                letter = letter.toUpperCase();
+                if(code in altOptions){
+                    letter = altOptions[code];
+                }
+            }
+            if(code == 13){
+                letter = '\n';
+            }
+            else if(code == 32){
+                letter = 'space';
+            }
+            //console.log(letter);
+            if(code == 8){
+                temp+= 'del ' + textarea.selectionStart;
+            }
+            else if(code == 46){
+                temp+= 'del ' + (textarea.selectionStart+1);
+            }
+            else{
+                temp+= 'ins ' + textarea.selectionStart + ' ' + letter;
+            }
+        }
+        else{
+            return;
+        }
+        var oplist = temp.split(' ');
+        var letter = "";
+        if(oplist.length == 3)letter = oplist[2];
+        var dict = {
+            'operation': oplist[0],
+            'position' : oplist[1],
+            'letter' : letter,
+            'name' : Name,
+            'time' : new Date().getTime(),
+            'doc' : document.getElementById('doc').value
+        }
+        
+        //updQueue.push(dict);
+
+        chatSocket.send(JSON.stringify({
+            'operation': oplist[0],
+            'position' : oplist[1],
+            'letter' : letter,
+            'name' : Name,
+            'time' : dict['time']
+        }));
+    }
+
+    chatSocket.onmessage = function(e) {
+        var data = JSON.parse(e.data);
+        
+        /*updQueue.sort(function(a,b){
+            return a.time < b.time;
+        });*/
+        if(data['name'] != Name){
+            var doc = document.getElementById('doc').value;
+            /*for(i = 0; i < updQueue.length; i++){
+                if(data['time'] <= updQueue[i]['time']){
+                    doc = updQueue[i]['doc'];
+                    doc = upd(data,doc);
+                    var posChange = 0;
+                    if(data['operation'] == 'del')posChange = -1;
+                    else if(data['operation'] == 'ins')posChange = 1;
+                    for(j = i;j<updQueue.length;j++){
+                        //
+                    }
+                    break;
+                }
+            }*/
+
+            doc = upd(data,doc);
+            document.getElementById('doc').value = doc;
+        }
+
+    };
+
+    function upd(data,doc){
+        var op = data['operation'];
+        var pos = data['position'];
+        var letter = data['letter'];
+        
+        if(op == 'del'){
+            doc = doc.substring(0,pos-1) + doc.substring(pos,doc.length);
+        }
+        else if(op == 'ins'){
+            if(letter == 'space')letter = ' ';
+            if(pos >= doc.length){
+                doc+=letter;
+            }
+            else{
+                doc = doc.substring(0,pos) + letter + doc.substring(pos,doc.length);
+            }
+        }
+        return doc;
+    }
+    
+    chatSocket.onclose = function(e){
+        console.error('Chat socket closed unexpectedly');
+    };
+</script>
+
 {% endblock %}

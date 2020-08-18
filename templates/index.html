@@ -6,6 +6,8 @@
         <H1>Shared Doc</H1>
         <form action="openDoc" method="POST">
             {% csrf_token %}
+            Enter Name: 
+            <input type="text" name="name" ><br><br>
             To Edit existing Doc enter its ID:
             <input type="number" name="docID" value="docID">
             <input type="submit" name="go" value="go"><br><br><br>
